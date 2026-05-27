@@ -800,11 +800,11 @@ function renderPlaceView(dIdx, pIdx) {
     <div class="address">${p.loc} ></div>${p.type === '民宿' || p.type === '古村落' ? '' : '<div class="address-actions"><div class="a-btn"><svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><span>导航</span></div><div class="a-btn"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>电话</span></div></div>'}
   </div>
   <div class="place-tabs">
-    <div class="p-tab active" onclick="switchPlaceTab('hot')">热度</div>
+    <div class="p-tab" onclick="switchPlaceTab('hot')">热度</div>
     <div class="p-tab" onclick="switchPlaceTab('notes')">笔记</div>
-    <div class="p-tab" onclick="switchPlaceTab('goods')">商品</div>
+    <div class="p-tab active" onclick="switchPlaceTab('goods')">商品</div>
   </div>
-  <div class="place-content active" id="pv-hot">
+  <div class="place-content" id="pv-hot">
     <div class="hot-section">
       <div class="hot-title"><h3>讨论热度</h3><div class="more">全部 ></div></div>
       <div class="hot-tags">${p.hotTags.map(h=>`<span class="h-tag">${h[0]}<span class="count">${h[1]}</span></span>`).join('')}</div>
@@ -821,7 +821,7 @@ function renderPlaceView(dIdx, pIdx) {
       </div>`).join('')}
     </div>
   </div>
-  <div class="place-content" id="pv-goods">
+  <div class="place-content active" id="pv-goods">
     <div class="goods-list-place">${p.goods.map(g=>`<div class="goods-card" onclick="openProduct()"><img class="g-img" src="${g.img}" alt=""><div class="g-name">${g.name}</div><div class="g-price">${g.price}</div></div>`).join('')}</div>
   </div>`;
 }
