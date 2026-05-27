@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>小红书 - 街区</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --primary: #FF2442; --bg: #F5F5F5; --card-bg: #FFFFFF; --text-primary: #333; --text-secondary: #666; --text-tertiary: #999; --border: #E8E8E8; }
+  body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+  .phone-frame { max-width: 414px; margin: 0 auto; background: #fff; min-height: 100vh; position: relative; overflow-x: hidden; display: flex; flex-direction: column; }
+  .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 20px 4px; font-size: 15px; font-weight: 600; background: #fff; z-index: 100; }
+  .status-bar .icons { display: flex; align-items: center; gap: 5px; }
+  .status-bar .icons svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .view { display: none; flex: 1; overflow-y: auto; scrollbar-width: none; padding-bottom: 90px; }
+  .view::-webkit-scrollbar { display: none; }
+  .view.active { display: block; }
+  .top-nav { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px 0; background: #fff; position: sticky; top: 0; z-index: 99; }
+  .top-nav .left-icon, .top-nav .right-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .top-nav .left-icon svg, .top-nav .right-icon svg { width: 24px; height: 24px; stroke: var(--text-primary); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tab-switcher { display: flex; align-items: center; gap: 28px; }
+  .tab-switcher .tab { font-size: 16px; color: var(--text-secondary); padding-bottom: 10px; position: relative; cursor: pointer; font-weight: 500; }
+  .tab-switcher .tab.active { color: var(--text-primary); font-weight: 600; font-size: 17px; }
+  .tab-switcher .tab.active::after { content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 28px; height: 3px; background: var(--primary); border-radius: 2px; }
+  .category-bar { display: flex; gap: 20px; padding: 12px 16px; background: #fff; overflow-x: auto; scrollbar-width: none; border-bottom: 0.5px solid var(--border); }
+  .category-bar::-webkit-scrollbar { display: none; }
+  .category-bar .cat { white-space: nowrap; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
+  .category-bar .cat.active { color: var(--text-primary); font-weight: 600; }
+  .tab-content { display: none; padding: 12px 12px 0; }
+  .tab-content.active { display: block; }
+  .theme-card { background: var(--card-bg); border-radius: 16px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); cursor: pointer; }
+  .theme-card:active { transform: scale(0.98); }
+  .theme-card .cover { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #F0EFEA; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+  .theme-card .cover .title-group { position: relative; z-index: 2; text-align: center; padding: 20px; }
+  .theme-card .cover .main-title { font-size: 42px; font-weight: 900; line-height: 1.1; color: #1a1a1a; letter-spacing: -1px; }
+  .theme-card .cover .sub-title { font-size: 36px; font-weight: 900; line-height: 1.1; color: #1a1a1a; letter-spacing: -1px; margin-top: 4px; }
+  .theme-card .cover .en-title { margin-top: 16px; font-size: 48px; font-weight: 900; color: #E85D4E; letter-spacing: -2px; line-height: 1; position: relative; display: inline-block; }
+  .theme-card .cover .tag { position: absolute; right: -12px; top: -6px; background: #F5E6A0; color: #8B7355; font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; transform: rotate(8deg); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .theme-card .card-footer { padding: 14px 16px; background: #fff; }
+  .theme-card .card-footer .card-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
+  .theme-card .card-footer .card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .theme-card .card-footer .card-meta .meta-item { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; }
+  .theme-card .card-footer .card-meta .meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-tertiary); }
+  .theme-card .card-footer .card-meta .meta-tag { padding: 2px 8px; background: #F5F5F5; border-radius: 10px; font-size: 11px; color: var(--text-secondary); }
+  .theme-card .card-footer .author { display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 0.5px solid var(--border); }
+  .theme-card .card-footer .author .avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
+  .page-header { display: flex; align-items: center; padding: 8px 16px; background: #fff; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 99; }
+  .page-header .back-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 8px; }
+  .page-header .back-btn svg { width: 20px; height: 20px; stroke: var(--text-primary); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .page-header .page-title { font-size: 16px; font-weight: 600; flex: 1; text-align: center; margin-right: 40px; }
+  .detail-hero { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #F0EFEA; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+  .detail-hero .title-group { position: relative; z-index: 2; text-align: center; padding: 20px; }
+  .detail-hero .main-title { font-size: 42px; font-weight: 900; line-height: 1.1; color: #1a1a1a; }
+  .detail-hero .sub-title { font-size: 36px; font-weight: 900; line-height: 1.1; color: #1a1a1a; margin-top: 4px; }
+  .detail-hero .en-title { margin-top: 16px; font-size: 48px; font-weight: 900; color: #E85D4E; letter-spacing: -2px; line-height: 1; position: relative; display: inline-block; }
+  .detail-hero .tag { position: absolute; right: -12px; top: -6px; background: #F5E6A0; color: #8B7355; font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; transform: rotate(8deg); }
+  .detail-intro { padding: 20px 16px 16px; background: #fff; }
+  .detail-intro .desc { font-size: 15px; line-height: 1.7; color: var(--text-secondary); margin-bottom: 20px; }
+  .curator-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 0.5px solid var(--border); }
+  .curator-bar .curator-left { display: flex; align-items: center; gap: 10px; }
+  .curator-bar .curator-left .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
+  .curator-bar .curator-left .info .name { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .curator-bar .curator-left .info .sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .follow-btn { padding: 6px 16px; background: var(--primary); color: #fff; border: none; border-radius: 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .follow-btn.following { background: #f0f0f0; color: var(--text-secondary); }
+  .stats-bar { display: flex; align-items: center; justify-content: space-around; padding: 16px; background: #FAFAFA; margin: 0 16px 16px; border-radius: 12px; }
+  .stats-bar .stat { text-align: center; } .stats-bar .stat .num { font-size: 20px; font-weight: 700; } .stats-bar .stat .label { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .stats-bar .divider { width: 1px; height: 24px; background: var(--border); }
+  .section-title { font-size: 18px; font-weight: 700; padding: 0 16px 12px; background: #fff; }
+  .shop-card { padding: 16px; background: #fff; border-bottom: 0.5px solid var(--border); cursor: pointer; }
+  .shop-card:last-child { border-bottom: none; }
+  .shop-card .shop-main { display: flex; gap: 12px; margin-bottom: 12px; }
+  .shop-card .shop-img-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+  .shop-card .shop-img-wrap .shop-img { width: 100%; height: 100%; border-radius: 12px; object-fit: cover; position: relative; z-index: 2; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .shop-card .shop-img-wrap .shop-img-deco { position: absolute; width: 100%; height: 100%; border-radius: 12px; background: #E8E8E8; top: -4px; left: -4px; z-index: 1; transform: rotate(-6deg); border: 2px solid #fff; }
+  .shop-card .shop-info { flex: 1; min-width: 0; }
+  .shop-card .shop-info .shop-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .shop-card .shop-info .shop-header .shop-name { font-size: 17px; font-weight: 700; line-height: 1.3; flex: 1; }
+  .shop-card .shop-info .shop-header .star-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-left: 4px; }
+  .shop-card .shop-info .shop-header .star-btn svg { width: 22px; height: 22px; stroke: var(--text-tertiary); fill: none; stroke-width: 1.5; }
+  .shop-card .shop-info .shop-header .star-btn.active svg { fill: #FFD700; stroke: #FFD700; }
+  .shop-card .shop-info .shop-meta { font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px; }
+  .shop-card .shop-info .quote { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px; }
+  .shop-card .shop-info .quote .quote-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; margin-top: 2px; }
+  .shop-card .shop-info .quote .quote-text { font-size: 14px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .shop-card .shop-info .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .shop-card .shop-info .tags .tag { padding: 3px 10px; background: #F5F5F5; border-radius: 12px; font-size: 12px; color: var(--text-secondary); }
+  .shop-note-recs { margin-top: 12px; padding-top: 12px; border-top: 0.5px dashed var(--border); }
+  .shop-note-recs .rec-label { font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px; }
+  .shop-note-recs .rec-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; }
+  .shop-note-recs .rec-item .rec-img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #f0f0f0; }
+  .shop-note-recs .rec-item .rec-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+  .shop-note-recs .rec-item .rec-likes { font-size: 12px; color: var(--text-tertiary); flex-shrink: 0; }
+  .place-hero { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #333; overflow: hidden; }
+  .place-hero img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; }
+  .place-hero .hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; height: 60%; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%); }
+  .place-hero .hero-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 16px 16px; color: #fff; z-index: 2; }
+  .place-hero .hero-content .place-name { font-size: 24px; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .place-hero .hero-content .place-rating { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .place-hero .hero-content .place-rating .stars { color: #FFD700; font-size: 14px; letter-spacing: 1px; }
+  .place-hero .hero-content .place-rating .score { font-size: 15px; font-weight: 700; }
+  .place-hero .hero-content .place-rating .reviews { font-size: 13px; opacity: 0.9; }
+  .place-hero .hero-content .place-meta { display: flex; align-items: center; gap: 8px; font-size: 13px; opacity: 0.9; margin-bottom: 8px; }
+  .place-hero .hero-content .place-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .place-hero .hero-content .place-tags .p-tag { padding: 3px 10px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 12px; backdrop-filter: blur(4px); }
+  .place-hero .collect-btn { position: absolute; top: 60px; right: 16px; padding: 6px 14px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 20px; font-size: 13px; color: #fff; display: flex; align-items: center; gap: 4px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.3); }
+  .place-hero .collect-btn svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; }
+  .place-address-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fff; border-bottom: 0.5px solid var(--border); }
+  .place-address-bar .address { font-size: 14px; flex: 1; }
+  .place-address-bar .address-actions { display: flex; gap: 16px; }
+  .place-address-bar .address-actions .a-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+  .place-address-bar .address-actions .a-btn svg { width: 22px; height: 22px; stroke: var(--text-secondary); fill: none; stroke-width: 1.5; }
+  .place-address-bar .address-actions .a-btn span { font-size: 10px; color: var(--text-secondary); }
+  .place-tabs { display: flex; gap: 24px; padding: 0 16px; background: #fff; border-bottom: 0.5px solid var(--border); position: sticky; top: 48px; z-index: 98; }
+  .place-tabs .p-tab { font-size: 15px; color: var(--text-secondary); padding: 12px 0; position: relative; cursor: pointer; font-weight: 500; }
+  .place-tabs .p-tab.active { color: var(--text-primary); font-weight: 700; }
+  .place-tabs .p-tab.active::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px; background: var(--primary); border-radius: 2px; }
+  .place-content { display: none; background: #fff; } .place-content.active { display: block; }
+  .hot-section { padding: 16px; } .hot-section .hot-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; } .hot-section .hot-title h3 { font-size: 16px; font-weight: 700; } .hot-section .hot-title .more { font-size: 13px; color: var(--text-tertiary); }
+  .hot-section .hot-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hot-section .hot-tags .h-tag { padding: 8px 14px; background: #F5F5F5; border-radius: 8px; font-size: 13px; color: var(--text-primary); }
+  .hot-section .hot-tags .h-tag .count { color: var(--text-tertiary); margin-left: 4px; }
+  .notes-list { padding: 0 16px; }
+  .note-item { padding: 16px 0; border-bottom: 0.5px solid var(--border); }
+  .note-item:last-child { border-bottom: none; }
+  .note-item .note-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .note-item .note-header .note-user { display: flex; align-items: center; gap: 8px; }
+  .note-item .note-header .note-user img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+  .note-item .note-header .note-user .username { font-size: 14px; font-weight: 600; }
+  .note-item .note-header .note-likes { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--text-tertiary); }
+  .note-item .note-text { font-size: 14px; line-height: 1.6; margin-bottom: 8px; }
+  .note-item .note-text .more { color: var(--text-tertiary); }
+  .note-item .note-imgs { display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto; scrollbar-width: none; }
+  .note-item .note-imgs::-webkit-scrollbar { display: none; }
+  .note-item .note-imgs img { width: 110px; height: 110px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+  .note-item .note-imgs .img-count { position: relative; flex-shrink: 0; }
+  .note-item .note-imgs .img-count .count-badge { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.5); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 10px; }
+  .note-item .note-footer { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-tertiary); }
+  .note-item .note-source { display: flex; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+  .goods-list-place { padding: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .goods-card { cursor: pointer; }
+  .goods-card .g-img { width: 100%; aspect-ratio: 1; border-radius: 12px; object-fit: cover; background: #f0f0f0; margin-bottom: 8px; }
+  .goods-card .g-name { font-size: 13px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+  .goods-card .g-price { font-size: 15px; font-weight: 700; color: var(--primary); }
+  .product-images { width: 100%; aspect-ratio: 1; background: #f8f8f8; position: relative; }
+  .product-images img { width: 100%; height: 100%; object-fit: cover; }
+  .product-images .img-indicator { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+  .product-images .img-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); }
+  .product-images .img-indicator .dot.active { background: #fff; width: 16px; border-radius: 3px; }
+  .product-info { padding: 16px; } .product-info .product-name { font-size: 18px; font-weight: 700; line-height: 1.4; margin-bottom: 8px; }
+  .product-info .product-price { font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 16px; }
+  .product-info .product-price .original { font-size: 14px; color: var(--text-tertiary); text-decoration: line-through; margin-left: 8px; font-weight: 400; }
+  .shop-info-bar { display: flex; align-items: center; padding: 12px; background: #FAFAFA; border-radius: 8px; margin-bottom: 16px; }
+  .shop-info-bar .shop-icon { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; margin-right: 10px; }
+  .shop-info-bar .shop-name-text { flex: 1; font-size: 14px; font-weight: 600; } .shop-info-bar .enter-shop { font-size: 13px; color: var(--text-tertiary); }
+  .product-desc { font-size: 14px; line-height: 1.7; color: var(--text-secondary); }
+  .buy-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 414px; background: #fff; border-top: 0.5px solid var(--border); display: flex; align-items: center; padding: 8px 16px 24px; z-index: 100; gap: 12px; }
+  .buy-bar .like-btn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 50%; background: #fff; cursor: pointer; }
+  .buy-bar .like-btn svg { width: 22px; height: 22px; stroke: var(--text-secondary); fill: none; stroke-width: 1.5; }
+  .buy-bar .like-btn.active svg { fill: var(--primary); stroke: var(--primary); }
+  .buy-bar .buy-btn { flex: 1; height: 44px; background: var(--primary); color: #fff; border: none; border-radius: 22px; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .bottom-tab { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 414px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 0.5px solid var(--border); display: flex; justify-content: space-around; align-items: center; padding: 6px 0 24px; z-index: 100; }
+  .bottom-tab .tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; position: relative; }
+  .bottom-tab .tab-item .icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+  .bottom-tab .tab-item .icon svg { width: 24px; height: 24px; fill: var(--text-tertiary); transition: fill 0.2s; }
+  .bottom-tab .tab-item.active .icon svg { fill: var(--text-primary); }
+  .bottom-tab .tab-item .label { font-size: 10px; color: var(--text-tertiary); transition: color 0.2s; }
+  .bottom-tab .tab-item.active .label { color: var(--text-primary); font-weight: 600; }
+  .bottom-tab .tab-item .badge { position: absolute; top: 0; right: -2px; width: 16px; height: 16px; background: var(--primary); color: #fff; font-size: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; border: 2px solid #fff; }
+  .publish-btn { width: 48px; height: 32px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; font-weight: 300; margin-bottom: 2px; box-shadow: 0 2px 8px rgba(255,36,66,0.3); }
+  .hidden { display: none !important; }
+  .place-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 99; }
+  .place-header .back-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .place-header .back-btn svg { width: 20px; height: 20px; stroke: var(--text-primary); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .place-header .header-actions { display: flex; gap: 12px; }
+  .place-header .header-actions .action-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .place-header .header-actions .action-btn svg { width: 22px; height: 22px; stroke: var(--text-primary); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">16:17</span>
+    <div class="icons">
+      <svg viewBox="0 0 18 18"><path d="M1 12h2v3H1zm4-2h2v5H5zm4-3h2v8H9zm4-3h2v11h-2z" fill="#333"/></svg>
+      <svg viewBox="0 0 18 18"><path d="M9 3C5.5 3 2.3 4.5 0 7l9 9 9-9C15.7 4.5 12.5 3 9 3z" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="9" cy="8" r="1.5" fill="#333"/></svg>
+      <svg viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="2.5" fill="none" stroke="#333" stroke-width="1"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="#333"/><rect x="22" y="4" width="2" height="4" rx="1" fill="#333"/></svg>
+    </div>
+  </div>
+
+  <div class="view home-view active" id="homeView">
+    <div class="top-nav">
+      <div class="left-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+      <div class="tab-switcher">
+        <div class="tab">关注</div>
+        <div class="tab">发现</div>
+        <div class="tab active">街区</div>
+      </div>
+      <div class="right-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+    </div>
+    <div class="category-bar">
+      <div class="cat active" data-tab="rec">推荐</div>
+      <div class="cat" data-tab="hot">热点</div>
+      <div class="cat" data-tab="flash">限时</div>
+      <div class="cat" data-tab="follow">关注</div>
+    </div>
+    <div class="tab-content active" id="tabRec"></div>
+    <div class="tab-content" id="tabHot"></div>
+    <div class="tab-content" id="tabFlash"></div>
+    <div class="tab-content" id="tabFollow"></div>
+  </div>
+
+  <div class="view" id="detailView0"></div>
+  <div class="view" id="detailView1"></div>
+  <div class="view" id="detailView2"></div>
+  <div class="view" id="detailView3"></div>
+  <div class="view" id="detailView4"></div>
+  <div class="view" id="detailView5"></div>
+  <div class="view" id="detailView6"></div>
+  <div class="view" id="detailView7"></div>
+  <div class="view" id="detailView8"></div>
+  <div class="view" id="placeView"></div>
+  <div class="view" id="productView"></div>
+
+  <div class="buy-bar" id="buyBar" style="display:none;">
+    <div class="like-btn" onclick="toggleLike(this)"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+    <button class="buy-btn">立即购买</button>
+  </div>
+
+  <div class="bottom-tab" id="bottomTab">
+    <div class="tab-item"><div class="icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="label">首页</span></div>
+    <div class="tab-item"><div class="icon"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><span class="label">市集</span></div>
+    <div class="tab-item"><div class="publish-btn">+</div></div>
+    <div class="tab-item"><div class="icon" style="position:relative;"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span class="badge">1</span></div><span class="label">消息</span></div>
+    <div class="tab-item"><div class="icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span class="label">我</span></div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const ava = u => `https://i.pravatar.cc/150?u=${u}`;
+const img = (s,w,h) => `https://picsum.photos/seed/${s}/${w}/${h}`;
+
+const homeCards = {
+  rec: [
+    { idx: 0, title: "巨富长色彩探索之旅", main: "城市色彩", sub: "探索局", en: "COLORWALK", enColor: "#E85D4E", bg: "#F0EFEA", tag: "Mint Green", author: "不爱吃咸鱼", avatar: ava(1), shops: 23, tags: ["买手店","独立书店","咖啡馆"], people: "1,228" },
+    { idx: 1, title: "上海适合雨天躲起来的 12 个角落", main: "雨天", sub: "治愈地图", en: "RAINY DAY", enColor: "#5A8F7B", bg: "#E8F4F0", author: "@上海散步家", avatar: ava(2), shops: 12, tags: ["书店","茶馆","画廊"], people: "856" },
+    { idx: 2, title: "2小时高铁圈 · 本月最值得去的 6 个地方", main: "周末", sub: "出逃计划", en: "WEEKEND", enColor: "#E8784A", bg: "#FFF5E6", author: "@周末探索者", avatar: ava(3), shops: 6, tags: ["民宿","咖啡馆","古村落"], people: "2,341" },
+  ],
+  hot: [
+    { idx: 3, title: "武康路不踩雷攻略：本地人带你逛", main: "武康路", sub: "漫步指南", en: "WUKANG", enColor: "#C75B3A", bg: "#F5E6DC", tag: "HOT", author: "上海老克勒", avatar: ava(4), shops: 18, tags: ["老洋房","梧桐","咖啡"], people: "3,456" },
+    { idx: 4, title: "安福路「亚文化」地图", main: "安福路", sub: "潮人雷达", en: "ANFU", enColor: "#8B5CF6", bg: "#F3E8FF", author: "亚到失语", avatar: ava(5), shops: 15, tags: ["潮牌","古着","黑胶"], people: "2,890" },
+    { idx: 5, title: "苏州河畔的夜生活指南", main: "苏州河", sub: "夜行记", en: "NIGHTWALK", enColor: "#1E40AF", bg: "#DBEAFE", author: "夜游神", avatar: ava(6), shops: 9, tags: ["精酿","livehouse","夜景"], people: "1,567" },
+  ],
+  flash: [
+    { idx: 6, title: "本周限定：黑胶市集只剩3天", main: "黑胶", sub: "限时市集", en: "VINYL", enColor: "#7C2D12", bg: "#FEF3C7", tag: "仅剩3天", author: "音乐贩子", avatar: ava(7), shops: 32, tags: ["黑胶","独立音乐","复古"], people: "892" },
+    { idx: 7, title: "端午特辑：江南水乡手作市集", main: "端午", sub: "手作市集", en: "DRAGON", enColor: "#047857", bg: "#D1FAE5", tag: "6/8-6/10", author: "手艺人的春天", avatar: ava(8), shops: 28, tags: ["手作","非遗","江南"], people: "1,203" },
+    { idx: 8, title: "今夜开放：外滩天台露天电影", main: "外滩", sub: "露天电影", en: "ROOFTOP", enColor: "#BE185D", bg: "#FCE7F3", tag: "今晚", author: "电影爱好者", avatar: ava(9), shops: 1, tags: ["露天电影","夜景","天台"], people: "456" },
+  ],
+  follow: [
+    { idx: 0, title: "巨富长色彩探索之旅", main: "城市色彩", sub: "探索局", en: "COLORWALK", enColor: "#E85D4E", bg: "#F0EFEA", tag: "更新", author: "不爱吃咸鱼", avatar: ava(1), shops: 23, tags: ["买手店","独立书店","咖啡馆"], people: "1,228" },
+    { idx: 3, title: "武康路不踩雷攻略：本地人带你逛", main: "武康路", sub: "漫步指南", en: "WUKANG", enColor: "#C75B3A", bg: "#F5E6DC", tag: "更新", author: "上海老克勒", avatar: ava(4), shops: 18, tags: ["老洋房","梧桐","咖啡"], people: "3,456" },
+    { idx: 6, title: "本周限定：黑胶市集只剩3天", main: "黑胶", sub: "限时市集", en: "VINYL", enColor: "#7C2D12", bg: "#FEF3C7", tag: "更新", author: "音乐贩子", avatar: ava(7), shops: 32, tags: ["黑胶","独立音乐","复古"], people: "892" },
+  ]
+};
+
+const districts = [
+  {
+    idx: 0, heroMain: "城市色彩", heroSub: "探索局", heroEn: "COLORWALK", heroColor: "#E85D4E", heroBg: "#F0EFEA", heroTag: "Mint Green",
+    desc: "巨富长，是上海老克勒和新青年共同迷恋的一片街区。这里藏着独立书店、手冲咖啡馆、Vintage买手店，和无数只有本地人才知道的秘密角落。",
+    curator: "不爱吃咸鱼", curatorAvatar: ava(1), curatorSub: "金盾认证 · 已策展 12 个街区",
+    stats: { shops: 23, events: 2, people: "1,228" },
+    places: [
+      { name: "LABELHOOD 买手店", type: "买手店", loc: "富民路", score: "4.8", reviews: "1857", img: img("labelhood",800,600), thumb: img("labelhood",200,200), tags: ["独立设计","拍照出片","小众品牌"], quote: "国内独立设计师品牌集合，不容易撞衫，每次来都有新发现。", qAvatar: ava(1),
+        notes: [
+          { user: "跑全马的河马", avatar: ava(10), text: "在 LABELHOOD 淘到了一件薄荷绿的西装外套，剪裁太绝了，出门就被问链接。", imgs: [img("n1a",200,200),img("n1b",200,200)], likes: 234, date: "04-18", source: "LABELHOOD探店" },
+          { user: "穿搭小白", avatar: ava(11), text: "富民路上的宝藏买手店，陈列像艺术展，店员品味很好，不会一直跟着你。", imgs: [img("n1c",200,200)], likes: 189, date: "04-20", source: "上海买手店地图" },
+          { user: "周末去哪儿", avatar: ava(12), text: "每次来巨富长必逛，今天发现上了新品牌，独立设计师的饰品太好看了。", imgs: [img("n1d",200,200),img("n1e",200,200)], likes: 156, date: "04-22", source: "巨富长逛街指南" }
+        ],
+        goods: [
+          { name: "设计师印花衬衫", price: "¥680", img: img("g1a",300,300) },
+          { name: "手工编织托特包", price: "¥420", img: img("g1b",300,300) },
+          { name: "独立香薰蜡烛", price: "¥198", img: img("g1c",300,300) },
+          { name: "限定丝巾", price: "¥358", img: img("g1d",300,300) }
+        ],
+        hotTags: [["独立设计师品牌",66],["拍照超出片",38],["不容易撞衫",37],["店员品味好",140],["陈列像艺术展",49],["富民路必逛",37],["薄荷绿门头",28],["配饰好看",22]]
+      },
+      { name: "鲸字号独立书店", type: "书店", loc: "巨鹿路", score: "4.9", reviews: "1023", img: img("jingzi",800,600), thumb: img("jingzi",200,200), tags: ["独立出版","zine","安静阅读"], quote: "全是独立出版物和zine，每本书都是店主亲自选的。二楼窗边的阅读位可以看到梧桐树影。", qAvatar: ava(1),
+        notes: [
+          { user: "书虫小王", avatar: ava(13), text: "在鲸字号翻到了一本关于上海老建筑的zine，插图太美了，直接买走。", imgs: [img("n2a",200,200)], likes: 312, date: "04-15", source: "独立书店漫步" },
+          { user: "咖啡与书", avatar: ava(14), text: "二楼窗边的位置是我的秘密基地，一杯咖啡一本书，可以待一下午。", imgs: [img("n2b",200,200),img("n2c",200,200)], likes: 278, date: "04-17", source: "雨天好去处" },
+          { user: "文艺青年", avatar: ava(15), text: "店主推荐了一本独立摄影师的画册，翻完直接被种草，买下带回家。", imgs: [img("n2d",200,200)], likes: 145, date: "04-19", source: "画册推荐" }
+        ],
+        goods: [
+          { name: "独立艺术zine", price: "¥88", img: img("g2a",300,300) },
+          { name: "手作笔记本", price: "¥56", img: img("g2b",300,300) },
+          { name: "上海老建筑画册", price: "¥128", img: img("g2c",300,300) }
+        ],
+        hotTags: [["独立出版物",89],["zine文化",56],["二楼窗景",45],["店主荐书",34],["梧桐树影",67],["安静阅读",123],["插画精美",28]]
+      },
+      { name: "SLAB TOWN 石板城咖啡", type: "咖啡馆", loc: "富民路", score: "4.7", reviews: "2341", img: img("slabtown",800,600), thumb: img("slabtown",200,200), tags: ["手冲咖啡","工业风","咖啡师推荐"], quote: "极简工业风，咖啡师对豆子很讲究。店里的橙色霓虹灯管是整条街的标志性打卡点。", qAvatar: ava(1),
+        notes: [
+          { user: "咖啡控", avatar: ava(16), text: "石板城的埃塞俄比亚手冲是我喝过最干净的，花香和柑橘味balance得刚刚好。", imgs: [img("n3a",200,200),img("n3b",200,200)], likes: 567, date: "04-16", source: "上海咖啡地图" },
+          { user: "早起的人", avatar: ava(17), text: "早上八点来，店里只有我和咖啡师，听他讲每支豆子的故事，是富民路最好的开场。", imgs: [img("n3c",200,200)], likes: 423, date: "04-18", source: "清晨咖啡日记" },
+          { user: "拍照达人", avatar: ava(18), text: "门头太好拍了，橙色霓虹灯+水泥墙，出片率100%，咖啡也好喝不踩雷。", imgs: [img("n3d",200,200),img("n3e",200,200)], likes: 389, date: "04-21", source: "上海拍照攻略" }
+        ],
+        goods: [
+          { name: "限定拼配咖啡豆", price: "¥128", img: img("g3a",300,300) },
+          { name: "品牌随行杯", price: "¥168", img: img("g3b",300,300) },
+          { name: "挂耳咖啡礼盒", price: "¥89", img: img("g3c",300,300) }
+        ],
+        hotTags: [["埃塞俄比亚手冲",78],["橙色霓虹灯",134],["工业风拍照",89],["咖啡师专业",56],["早上八点",45],["门头出片",112],["柑橘风味",34]]
+      },
+      { name: "FINE FAN zakka & 食堂", type: "日式杂货", loc: "富民路", score: "4.6", reviews: "1567", img: img("finefan",800,600), thumb: img("finefan",200,200), tags: ["日式杂货","治愈系","一人食友好"], quote: "一楼是杂货，二楼是食堂。暖黄色的灯光和木质陈列让人一进去就放松下来。推荐三文鱼茶泡饭。", qAvatar: ava(1),
+        notes: [
+          { user: "吃货小李", avatar: ava(19), text: "二楼的茶泡饭是每次来的必点，配上一楼买的梅子酒，下雨天吃太治愈了。", imgs: [img("n4a",200,200)], likes: 445, date: "04-14", source: "一人食指南" },
+          { user: "杂货控", avatar: ava(20), text: "一楼的zakka区太好逛了，每次都能淘到一些奇奇怪怪又可爱的小东西。", imgs: [img("n4b",200,200),img("n4c",200,200)], likes: 312, date: "04-19", source: "zakka探店" },
+          { user: "独居女孩", avatar: ava(21), text: "暖黄色的灯光简直是疲惫打工人的充电站，一个人来吃饭也不会觉得孤单。", imgs: [img("n4d",200,200)], likes: 267, date: "04-23", source: "独居生活" }
+        ],
+        goods: [
+          { name: "日式粗陶餐具", price: "¥168", img: img("g4a",300,300) },
+          { name: "手工酱油套装", price: "¥98", img: img("g4b",300,300) },
+          { name: "和风手帕", price: "¥45", img: img("g4c",300,300) }
+        ],
+        hotTags: [["三文鱼茶泡饭",156],["zakka杂货",78],["暖黄色灯光",89],["一人食",134],["梅子酒",45],["木质陈列",56],["治愈系",112]]
+      }
+    ]
+  },
+  {
+    idx: 1, heroMain: "雨天", heroSub: "治愈地图", heroEn: "RAINY DAY", heroColor: "#5A8F7B", heroBg: "#E8F4F0",
+    desc: "上海最温柔的雨天，藏在这些角落里。不用带伞跑，不用担心鞋湿，只需要一杯热饮和一本好书。",
+    curator: "上海散步家", curatorAvatar: ava(2), curatorSub: "金盾认证 · 已策展 8 个街区",
+    stats: { shops: 12, events: 1, people: "856" },
+    places: [
+      { name: "1984 BOOK STORE", type: "书店", loc: "湖南路", score: "4.9", reviews: "892", img: img("1984book",800,600), thumb: img("1984book",200,200), tags: ["老洋房","独立出版","雨天治愈"], quote: "藏在老洋房里的书店，雨天坐在窗边，听雨点打在梧桐叶上的声音，是最治愈的下午。", qAvatar: ava(2),
+        notes: [
+          { user: "听雨的人", avatar: ava(22), text: "雨天来这儿最合适，老洋房的木质地板和窗外的梧桐，像走进了电影场景。", imgs: [img("n5a",200,200)], likes: 456, date: "04-12", source: "雨天书店" },
+          { user: "藏书家", avatar: ava(23), text: "找到了一本绝版的摄影集，雨天在这待了三小时，完全不想走。", imgs: [img("n5b",200,200),img("n5c",200,200)], likes: 312, date: "04-16", source: "绝版书 hunt" },
+          { user: "写字的人", avatar: ava(24), text: "二楼的阁楼位子是我的秘密基地，雨天在这里写东西，灵感特别多。", imgs: [img("n5d",200,200)], likes: 278, date: "04-20", source: "写作空间" }
+        ],
+        goods: [
+          { name: "绝版摄影集", price: "¥268", img: img("g5a",300,300) },
+          { name: "手写书签", price: "¥28", img: img("g5b",300,300) },
+          { name: "复古墨水", price: "¥68", img: img("g5c",300,300) }
+        ],
+        hotTags: [["老洋房书店",89],["雨天治愈",156],["梧桐叶声",45],["绝版摄影集",78],["阁楼座位",34],["木质地板",67],["电影感",123]]
+      },
+      { name: "隐溪茶馆", type: "茶馆", loc: "武夷路", score: "4.8", reviews: "1567", img: img("yinxi",800,600), thumb: img("yinxi",200,200), tags: ["榻榻米","听雨","中式茶饮"], quote: "榻榻米包间里听着雨声喝茶，时间好像慢了下来。推荐他们的白毫银针，配茶点是雨天最好的慰藉。", qAvatar: ava(2),
+        notes: [
+          { user: "茶客老张", avatar: ava(25), text: "雨天包间很难订，但值得等。听着雨声泡茶，感觉整个人都安静了。", imgs: [img("n6a",200,200),img("n6b",200,200)], likes: 523, date: "04-13", source: "茶馆日记" },
+          { user: "闺蜜约会", avatar: ava(26), text: "和闺蜜雨天来这里聊天，一壶茶喝了三泡，从下午坐到晚上，太舒服了。", imgs: [img("n6c",200,200)], likes: 389, date: "04-17", source: "闺蜜下午茶" },
+          { user: "养生女孩", avatar: ava(27), text: "白毫银针确实好喝，回甘很长。雨天配他们的桂花糕，绝配。", imgs: [img("n6d",200,200),img("n6e",200,200)], likes: 267, date: "04-21", source: "养生日常" }
+        ],
+        goods: [
+          { name: "白毫银针", price: "¥168", img: img("g6a",300,300) },
+          { name: "桂花糕礼盒", price: "¥88", img: img("g6b",300,300) },
+          { name: "手工茶壶", price: "¥328", img: img("g6c",300,300) }
+        ],
+        hotTags: [["白毫银针",145],["榻榻米包间",89],["听雨喝茶",67],["桂花糕",78],["闺蜜约会",123],["雨天慢时光",156],["中式茶道",45]]
+      },
+      { name: "胶囊画廊", type: "画廊", loc: "安福路", score: "4.7", reviews: "678", img: img("capsule",800,600), thumb: img("capsule",200,200), tags: ["当代艺术","安静","免费看展"], quote: "雨天看展是最好的选择。胶囊画廊空间不大，但策展非常用心，每次来都有新的惊喜。", qAvatar: ava(2),
+        notes: [
+          { user: "艺术迷", avatar: ava(28), text: "雨天一个人来看展，整个空间只有我和作品，那种沉浸感太珍贵了。", imgs: [img("n7a",200,200)], likes: 234, date: "04-11", source: "看展日记" },
+          { user: "装置控", avatar: ava(29), text: "这次的装置展太震撼了，雨天昏暗的光线反而让作品更有氛围。", imgs: [img("n7b",200,200),img("n7c",200,200)], likes: 198, date: "04-15", source: "装置艺术" },
+          { user: "安福路常客", avatar: ava(30), text: "安福路上的宝藏画廊，不需要预约，雨天随时进来避雨+看展。", imgs: [img("n7d",200,200)], likes: 167, date: "04-22", source: "安福路指南" }
+        ],
+        goods: [
+          { name: "展览画册", price: "¥128", img: img("g7a",300,300) },
+          { name: "艺术家明信片", price: "¥38", img: img("g7b",300,300) },
+          { name: "限定版画", price: "¥680", img: img("g7c",300,300) }
+        ],
+        hotTags: [["当代艺术",89],["装置艺术展",56],["雨天看展",78],["沉浸体验",45],["策展用心",34],["昏暗光线",67],["免费看展",123]]
+      },
+      { name: "BAsdBAN", type: "面包店", loc: "愚园路", score: "4.9", reviews: "3456", img: img("basdban",800,600), thumb: img("basdban",200,200), tags: ["可颂","落地窗","梧桐树"], quote: "巨大的落地玻璃窗，看雨中的梧桐树和来往的行人。可颂是招牌，雨天配热咖啡，完美的下午。", qAvatar: ava(2),
+        notes: [
+          { user: "面包脑袋", avatar: ava(31), text: "可颂酥脆到掉渣，雨天坐在窗边，看雨打梧桐，这才是上海该有的样子。", imgs: [img("n8a",200,200),img("n8b",200,200)], likes: 678, date: "04-10", source: "面包店测评" },
+          { user: "排队专业户", avatar: ava(32), text: "周末雨天来排队，虽然人多但值得。杏仁可颂最好吃，早点来不然卖光。", imgs: [img("n8c",200,200)], likes: 534, date: "04-14", source: "周末探店" },
+          { user: "雨天约会", avatar: ava(33), text: "和朋友雨天约在这里，一人一个可颂一杯拿铁，看愚园路的雨景，太惬意了。", imgs: [img("n8d",200,200),img("n8e",200,200)], likes: 445, date: "04-19", source: "雨天约会" }
+        ],
+        goods: [
+          { name: "杏仁可颂", price: "¥28", img: img("g8a",300,300) },
+          { name: "肉桂卷", price: "¥22", img: img("g8b",300,300) },
+          { name: "海盐黄油", price: "¥35", img: img("g8c",300,300) }
+        ],
+        hotTags: [["杏仁可颂",234],["落地窗",156],["雨打梧桐",89],["酥脆可颂",178],["雨天排队",67],["愚园路",145],["热咖啡",112]]
+      }
+    ]
+  },
+  {
+    idx: 2, heroMain: "周末", heroSub: "出逃计划", heroEn: "WEEKEND", heroColor: "#E8784A", heroBg: "#FFF5E6",
+    desc: "2小时高铁圈，不用请假、不用长途飞行，周六早上出发，周日晚上回来。这6个地方是私藏的短途旅行目的地。",
+    curator: "周末探索者", curatorAvatar: ava(3), curatorSub: "金盾认证 · 已策展 15 个街区",
+    stats: { shops: 6, events: 3, people: "2,341" },
+    places: [
+      { name: "莫干山 · 云端民宿", type: "民宿", loc: "莫干山", score: "4.9", reviews: "567", img: img("yunduan",800,600), thumb: img("yunduan",200,200), tags: ["竹海","云海","设计感"], quote: "推开窗就是竹海和云海，民宿藏在莫干山的半山腰，设计感极强。周末来这里，什么都不做，发呆就是正经事。", qAvatar: ava(3),
+        notes: [
+          { user: "山居爱好者", avatar: ava(34), text: "早上被鸟鸣叫醒，推开窗看到云海，那一刻觉得周末出逃太值得了。", imgs: [img("n9a",200,200),img("n9b",200,200)], likes: 892, date: "04-08", source: "莫干山民宿" },
+          { user: "美食猎人", avatar: ava(35), text: "民宿的晚餐是本地阿姨做的农家菜，竹笋炒肉绝了，比城里任何餐厅都好吃。", imgs: [img("n9c",200,200)], likes: 734, date: "04-12", source: "农家菜推荐" },
+          { user: "拍照狂魔", avatar: ava(36), text: "无边泳池拍照太出片了，和闺蜜拍了整整一下午，朋友圈被问爆。", imgs: [img("n9d",200,200),img("n9e",200,200)], likes: 612, date: "04-16", source: "民宿拍照" }
+        ],
+        goods: [
+          { name: "民宿伴手礼", price: "¥68", img: img("g9a",300,300) },
+          { name: "竹海茶叶", price: "¥128", img: img("g9b",300,300) },
+          { name: "手工竹编", price: "¥198", img: img("g9c",300,300) }
+        ],
+        hotTags: [["无边泳池",178],["云海日出",234],["农家菜",89],["竹海",156],["设计感民宿",145],["周末发呆",67],["闺蜜旅行",123]]
+      },
+      { name: "安吉 · 瀑布咖啡", type: "咖啡馆", loc: "安吉", score: "4.8", reviews: "1234", img: img("pubu",800,600), thumb: img("pubu",200,200), tags: ["瀑布","户外","自然"], quote: "在瀑布旁边喝咖啡，听水流的声音。这家店没有室内座位，只有露台和草地，雨天可以躲在帐篷里。", qAvatar: ava(3),
+        notes: [
+          { user: "户外女孩", avatar: ava(37), text: "从瀑布下面的石头路走过去，手捧咖啡坐在水边，感觉自己在拍广告。", imgs: [img("n10a",200,200)], likes: 823, date: "04-09", source: "瀑布咖啡" },
+          { user: "咖啡测评", avatar: ava(38), text: "虽然路有点难走，但看到瀑布的那一刻值了。咖啡一般，但景无敌。", imgs: [img("n10b",200,200),img("n10c",200,200)], likes: 645, date: "04-13", source: "户外咖啡" },
+          { user: "带狗旅行", avatar: ava(39), text: "周末带狗来的，狗狗在草地上疯跑，我在瀑布边喝咖啡，完美周末。", imgs: [img("n10d",200,200)], likes: 534, date: "04-18", source: "宠物友好" }
+        ],
+        goods: [
+          { name: "瀑布咖啡豆", price: "¥98", img: img("g10a",300,300) },
+          { name: "露营杯", price: "¥68", img: img("g10b",300,300) },
+          { name: "户外背包", price: "¥258", img: img("g10c",300,300) }
+        ],
+        hotTags: [["瀑布咖啡",234],["户外露台",89],["宠物友好",78],["自然风景",156],["石头路",45],["帐篷座位",67],["周末短途",123]]
+      },
+      { name: "乌镇 · 木心美术馆", type: "美术馆", loc: "乌镇", score: "4.9", reviews: "2345", img: img("muxin",800,600), thumb: img("muxin",200,200), tags: ["建筑","文学","临水"], quote: "在乌镇西栅的最深处，建筑本身就是艺术品。雨天看木心的画，窗外是乌镇的水巷，时间仿佛倒流。", qAvatar: ava(3),
+        notes: [
+          { user: "文学青年", avatar: ava(40), text: "木心的文字和画放在一起看，才明白什么是从前的日色变得慢。", imgs: [img("n11a",200,200),img("n11b",200,200)], likes: 1023, date: "04-07", source: "木心美术馆" },
+          { user: "建筑迷", avatar: ava(41), text: "建筑大师设计的美术馆，每一个角落都可以拍照，雨天光影更美。", imgs: [img("n11c",200,200)], likes: 867, date: "04-11", source: "建筑设计" },
+          { user: "周末游", avatar: ava(42), text: "上午看展，下午在乌镇的水巷里走走，晚上看夜景，完美的周末行程。", imgs: [img("n11d",200,200),img("n11e",200,200)], likes: 723, date: "04-15", source: "乌镇攻略" }
+        ],
+        goods: [
+          { name: "木心诗集", price: "¥58", img: img("g11a",300,300) },
+          { name: "美术馆画册", price: "¥168", img: img("g11b",300,300) },
+          { name: "乌镇蓝印花布", price: "¥88", img: img("g11c",300,300) }
+        ],
+        hotTags: [["木心文学",234],["建筑艺术",156],["乌镇水巷",89],["雨天看展",145],["西栅",178],["从前的日色",67],["周末游",123]]
+      },
+      { name: "桐庐 · 石舍村", type: "古村落", loc: "桐庐", score: "4.7", reviews: "445", img: img("shishe",800,600), thumb: img("shishe",200,200), tags: ["600年历史","小溪","慢生活"], quote: "600年的古村落，保留着明清时期的建筑。村里有一条小溪，夏天可以踩水，雨天看云雾绕山，像一幅水墨画。", qAvatar: ava(3),
+        notes: [
+          { user: "古村爱好者", avatar: ava(43), text: "村里没有商业化的店铺，只有几户本地人家和一家手工面馆，真正的慢生活。", imgs: [img("n12a",200,200)], likes: 567, date: "04-06", source: "古村落探索" },
+          { user: "水墨画", avatar: ava(44), text: "雨天来最美，云雾缭绕在古村落上方，像走进了黄公望的富春山居图。", imgs: [img("n12b",200,200),img("n12c",200,200)], likes: 489, date: "04-10", source: "中国画意境" },
+          { user: "亲子游", avatar: ava(45), text: "带孩子来认识古村落，告诉他这就是几百年前人们生活的样子，很有教育意义。", imgs: [img("n12d",200,200)], likes: 345, date: "04-17", source: "亲子旅行" }
+        ],
+        goods: [
+          { name: "手工面条", price: "¥15", img: img("g12a",300,300) },
+          { name: "古村落手作", price: "¥68", img: img("g12b",300,300) },
+          { name: "山泉水", price: "¥8", img: img("g12c",300,300) }
+        ],
+        hotTags: [["明清建筑",89],["云雾缭绕",156],["慢生活",78],["小溪踩水",45],["手工面",67],["富春山居图",123],["亲子教育",34]]
+      }
+    ]
+  },
+  {
+    idx: 3, heroMain: "武康路", heroSub: "漫步指南", heroEn: "WUKANG", heroColor: "#C75B3A", heroBg: "#F5E6DC", heroTag: "HOT",
+    desc: "武康路，上海最著名的历史文化名街之一。梧桐树下的老洋房、名人故居、网红小店，构成了这座城市最迷人的风景线。",
+    curator: "上海老克勒", curatorAvatar: ava(4), curatorSub: "金盾认证 · 已策展 18 个街区",
+    stats: { shops: 18, events: 2, people: "3,456" },
+    places: [
+      { name: "武康大楼", type: "历史建筑", loc: "武康路", score: "4.9", reviews: "3456", img: img("wukang1",800,600), thumb: img("wukang1",200,200), tags: ["邬达克","打卡地标","历史"], quote: "武康大楼是武康路的标志性建筑，邬达克设计，像一艘巨轮停泊在街角。", qAvatar: ava(4),
+        notes: [
+          { user: "建筑迷", avatar: ava(46), text: "武康大楼的每一个角度都好拍，尤其是黄昏时分，光线打在墙面上太美了。", imgs: [img("wkn1",200,200),img("wkn2",200,200)], likes: 678, date: "04-10", source: "建筑摄影" },
+          { user: "打卡达人", avatar: ava(47), text: "来上海必打卡的武康大楼，站在斑马线对面拍最好看，记得早上去人少。", imgs: [img("wkn3",200,200)], likes: 534, date: "04-14", source: "上海打卡" }
+        ],
+        goods: [
+          { name: "武康路明信片", price: "¥18", img: img("wkg1",300,300) },
+          { name: "建筑冰箱贴", price: "¥28", img: img("wkg2",300,300) }
+        ],
+        hotTags: [["邬达克设计",156],["打卡地标",234],["梧桐树影",89],["历史建筑",178],["黄昏光线",67],["拍照攻略",112]]
+      },
+      { name: "%Arabica咖啡", type: "咖啡馆", loc: "武康路", score: "4.7", reviews: "2103", img: img("wukang2",800,600), thumb: img("wukang2",200,200), tags: ["网红咖啡","落地窗","极简"], quote: "%Arabica的极简风格和武康路的老洋房形成有趣的对比，拿铁是招牌。", qAvatar: ava(4),
+        notes: [
+          { user: "咖啡控", avatar: ava(48), text: "拿铁奶泡绵密，豆子是综合拼配，坐在窗边看着武康路的梧桐很惬意。", imgs: [img("wkn4",200,200)], likes: 445, date: "04-12", source: "咖啡日记" },
+          { user: "拍照达人", avatar: ava(49), text: "极简纯白的空间和武康路的老建筑对比强烈，拍出来很有杂志感。", imgs: [img("wkn5",200,200),img("wkn6",200,200)], likes: 312, date: "04-18", source: "空间摄影" }
+        ],
+        goods: [
+          { name: "综合拼配咖啡豆", price: "¥128", img: img("wkg3",300,300) },
+          { name: "品牌随行杯", price: "¥168", img: img("wkg4",300,300) }
+        ],
+        hotTags: [["拿铁",145],["极简风格",89],["落地窗",67],["网红咖啡",123],["纯白空间",78],["武康路梧桐",56]]
+      }
+    ]
+  },
+  {
+    idx: 4, heroMain: "安福路", heroSub: "潮人雷达", heroEn: "ANFU", heroColor: "#8B5CF6", heroBg: "#F3E8FF",
+    desc: "安福路，上海亚文化和潮流的聚集地。从独立书店到古着店，从黑胶唱片到精酿啤酒，每一步都能遇见惊喜。",
+    curator: "亚到失语", curatorAvatar: ava(5), curatorSub: "金盾认证 · 已策展 15 个街区",
+    stats: { shops: 15, events: 1, people: "2,890" },
+    places: [
+      { name: "BM复古商店", type: "古着店", loc: "安福路", score: "4.8", reviews: "1234", img: img("anfu1",800,600), thumb: img("anfu1",200,200), tags: ["复古","亚文化","淘货"], quote: "安福路最火的几家古着店之一，店里堆满了上世纪的宝藏。", qAvatar: ava(5),
+        notes: [
+          { user: "复古控", avatar: ava(50), text: "淘到了一件90年代的皮衣，版型超正，穿上就是赛博朋克风。", imgs: [img("afn1",200,200)], likes: 567, date: "04-11", source: "古着探店" },
+          { user: "亚文化女孩", avatar: ava(51), text: "店里很多朋克和哥特风的配饰，价格也不贵，每次来都有新发现。", imgs: [img("afn2",200,200),img("afn3",200,200)], likes: 423, date: "04-16", source: "亚文化地图" }
+        ],
+        goods: [
+          { name: "复古皮衣", price: "¥580", img: img("afg1",300,300) },
+          { name: "朋克配饰", price: "¥128", img: img("afg2",300,300) }
+        ],
+        hotTags: [["90年代皮衣",89],["亚文化",156],["古着淘货",78],["朋克风",45],["哥特配饰",67],["安福路必逛",123]]
+      },
+      { name: "黑胶猩猩", type: "黑胶店", loc: "安福路", score: "4.9", reviews: "567", img: img("anfu2",800,600), thumb: img("anfu2",200,200), tags: ["黑胶","独立音乐","试听"], quote: "满墙的黑胶唱片，从爵士到后摇，店主会给你推荐冷门好碟。", qAvatar: ava(5),
+        notes: [
+          { user: "唱片收藏家", avatar: ava(52), text: "在这里找到了一张绝版的爵士黑胶，音质保存得非常好，值了。", imgs: [img("afn4",200,200)], likes: 345, date: "04-13", source: "黑胶探店" },
+          { user: "后摇迷", avatar: ava(53), text: "店主推荐的后摇乐队太对我的胃口了，直接在店里听完了一张专辑。", imgs: [img("afn5",200,200),img("afn6",200,200)], likes: 278, date: "04-19", source: "独立音乐" }
+        ],
+        goods: [
+          { name: "绝版爵士黑胶", price: "¥298", img: img("afg3",300,300) },
+          { name: "后摇唱片", price: "¥198", img: img("afg4",300,300) }
+        ],
+        hotTags: [["绝版黑胶",78],["爵士",56],["后摇",45],["店主推荐",89],["试听体验",67],["独立音乐",123]]
+      }
+    ]
+  },
+  {
+    idx: 5, heroMain: "苏州河", heroSub: "夜行记", heroEn: "NIGHTWALK", heroColor: "#1E40AF", heroBg: "#DBEAFE",
+    desc: "苏州河沿岸的夜生活，是上海另一面的打开方式。精酿酒吧、livehouse、深夜食堂，构成了一条属于夜晚的漫步路线。",
+    curator: "夜游神", curatorAvatar: ava(6), curatorSub: "金盾认证 · 已策展 9 个街区",
+    stats: { shops: 9, events: 2, people: "1,567" },
+    places: [
+      { name: "DEEP酒吧", type: "精酿酒吧", loc: "苏州河畔", score: "4.8", reviews: "892", img: img("suzhou1",800,600), thumb: img("suzhou1",200,200), tags: ["精酿","河景","氛围"], quote: "坐在河边露台喝精酿，看苏州河的夜景，是夏夜最好的打开方式。", qAvatar: ava(6),
+        notes: [
+          { user: "精酿爱好者", avatar: ava(54), text: "这里的IPA酒花香气很足，坐在露台看苏州河的夜景，太惬意了。", imgs: [img("szn1",200,200)], likes: 456, date: "04-12", source: "精酿地图" },
+          { user: "夜猫子", avatar: ava(55), text: "周末晚上和朋友来这里，河风吹着，精酿喝着，可以坐到凌晨。", imgs: [img("szn2",200,200),img("szn3",200,200)], likes: 389, date: "04-17", source: "夜生活指南" }
+        ],
+        goods: [
+          { name: "IPA精酿", price: "¥68", img: img("szg1",300,300) },
+          { name: "世涛啤酒", price: "¥78", img: img("szg2",300,300) }
+        ],
+        hotTags: [["IPA",89],["河景露台",156],["夜景",78],["精酿啤酒",45],["夏夜",67],["凌晨",34]]
+      },
+      { name: "育音堂", type: "livehouse", loc: "凯旋路", score: "4.9", reviews: "2341", img: img("suzhou2",800,600), thumb: img("suzhou2",200,200), tags: ["livehouse","独立音乐","演出"], quote: "上海最老牌的livehouse之一，周末常有独立乐队的演出。", qAvatar: ava(6),
+        notes: [
+          { user: "摇滚青年", avatar: ava(56), text: "看了后摇乐队的现场，灯光和音响都太棒了，氛围感拉满。", imgs: [img("szn4",200,200),img("szn5",200,200)], likes: 678, date: "04-10", source: "现场音乐" },
+          { user: "独立音乐迷", avatar: ava(57), text: "育音堂的场地不大，但离舞台很近，能看到乐手每一个表情。", imgs: [img("szn6",200,200)], likes: 534, date: "04-15", source: "livehouse日记" }
+        ],
+        goods: [
+          { name: "乐队T恤", price: "¥128", img: img("szg3",300,300) },
+          { name: "现场专辑", price: "¥88", img: img("szg4",300,300) }
+        ],
+        hotTags: [["独立乐队",156],["后摇",89],["现场演出",234],["灯光音响",78],["离舞台近",45],["氛围感",112]]
+      }
+    ]
+  },
+  {
+    idx: 6, heroMain: "黑胶", heroSub: "限时市集", heroEn: "VINYL", heroColor: "#7C2D12", heroBg: "#FEF3C7", heroTag: "仅剩3天",
+    desc: "为期三天的黑胶唱片限时市集，汇集了全国各地的唱片收藏家和独立音乐厂牌。从经典摇滚到实验电子，总有一张碟在等你。",
+    curator: "音乐贩子", curatorAvatar: ava(7), curatorSub: "金盾认证 · 已策展 32 个街区",
+    stats: { shops: 32, events: 5, people: "892" },
+    places: [
+      { name: "复古唱片铺", type: "黑胶店", loc: "市集A区", score: "4.9", reviews: "456", img: img("vinyl1",800,600), thumb: img("vinyl1",200,200), tags: ["经典摇滚","首版","收藏"], quote: "铺子里堆满了六七十年代的首版黑胶，披头士和滚石乐队的碟最多。", qAvatar: ava(7),
+        notes: [
+          { user: "摇滚老炮", avatar: ava(58), text: "找到了一张首版的《Abbey Road》，虽然贵但品相完美，果断拿下。", imgs: [img("vyn1",200,200)], likes: 456, date: "04-12", source: "黑胶收藏" },
+          { user: "唱片猎人", avatar: ava(59), text: "铺子不大但藏品惊人，老板对每一张碟的历史都如数家珍。", imgs: [img("vyn2",200,200),img("vyn3",200,200)], likes: 312, date: "04-14", source: "市集漫游" }
+        ],
+        goods: [
+          { name: "首版摇滚黑胶", price: "¥398", img: img("vyg1",300,300) },
+          { name: "复古唱片机", price: "¥1280", img: img("vyg2",300,300) }
+        ],
+        hotTags: [["首版黑胶",156],["披头士",89],["滚石",78],["六七十年代",45],["品相完美",67],["收藏",123]]
+      },
+      { name: "电子音乐站", type: "独立厂牌", loc: "市集B区", score: "4.8", reviews: "234", img: img("vinyl2",800,600), thumb: img("vinyl2",200,200), tags: ["电子","实验","地下"], quote: "专门做实验电子和地下音乐的独立厂牌，有很多国内未发行的作品。", qAvatar: ava(7),
+        notes: [
+          { user: "电子迷", avatar: ava(60), text: "发现了一张国内未发行的电子专辑，合成器音色太迷幻了。", imgs: [img("vyn4",200,200),img("vyn5",200,200)], likes: 234, date: "04-11", source: "电子音乐" },
+          { user: "地下音乐", avatar: ava(61), text: "厂牌主理人亲自推荐，从ambient到techno都有，挖到宝了。", imgs: [img("vyn6",200,200)], likes: 189, date: "04-13", source: "独立厂牌" }
+        ],
+        goods: [
+          { name: "实验电子专辑", price: "¥168", img: img("vyg3",300,300) },
+          { name: "合成器配件", price: "¥298", img: img("vyg4",300,300) }
+        ],
+        hotTags: [["实验电子",89],["地下音乐",56],["未发行",78],["合成器",45],["ambient",67],["techno",34]]
+      }
+    ]
+  },
+  {
+    idx: 7, heroMain: "端午", heroSub: "手作市集", heroEn: "DRAGON", heroColor: "#047857", heroBg: "#D1FAE5", heroTag: "6/8-6/10",
+    desc: "江南水乡的端午手作市集，集结了非遗传承人和年轻手作人。扎染、竹编、香囊，在古镇的石板路上寻找传统与现代的交集。",
+    curator: "手艺人的春天", curatorAvatar: ava(8), curatorSub: "金盾认证 · 已策展 28 个街区",
+    stats: { shops: 28, events: 3, people: "1,203" },
+    places: [
+      { name: "蓝印花布坊", type: "非遗", loc: "古镇东街", score: "4.9", reviews: "678", img: img("dragon1",800,600), thumb: img("dragon1",200,200), tags: ["蓝染","非遗","布艺"], quote: "老师傅手把手教你做蓝印花布，每一块布的花纹都是独一无二的。", qAvatar: ava(8),
+        notes: [
+          { user: "手作爱好者", avatar: ava(62), text: "第一次体验蓝染，虽然手法笨拙但成品超有成就感，带回家裱起来了。", imgs: [img("dgn1",200,200),img("dgn2",200,200)], likes: 567, date: "04-10", source: "蓝染体验" },
+          { user: "非遗迷", avatar: ava(63), text: "老师傅做了四十年蓝染，听他讲每一个花纹的寓意，收获满满。", imgs: [img("dgn3",200,200)], likes: 423, date: "04-12", source: "非遗传承" }
+        ],
+        goods: [
+          { name: "蓝印花布", price: "¥198", img: img("dgg1",300,300) },
+          { name: "扎染体验课", price: "¥128", img: img("dgg2",300,300) }
+        ],
+        hotTags: [["蓝染体验",156],["非遗传承",89],["手工布艺",78],["独一无二",45],["老师傅",67],["花纹寓意",34]]
+      },
+      { name: "艾草香囊铺", type: "手作", loc: "古镇西街", score: "4.8", reviews: "345", img: img("dragon2",800,600), thumb: img("dragon2",200,200), tags: ["香囊","端午","草本"], quote: "现缝的艾草香囊，里面装满了江南的夏天，驱蚊又安神。", qAvatar: ava(8),
+        notes: [
+          { user: "养生女孩", avatar: ava(64), text: "自己缝了一个艾草香囊，虽然针脚歪歪扭扭但味道很好闻，挂在床头了。", imgs: [img("dgn4",200,200)], likes: 345, date: "04-11", source: "手作日记" },
+          { user: "古镇游客", avatar: ava(65), text: "香囊铺子散发着艾草和薄荷的清香，站在门口就觉得很治愈。", imgs: [img("dgn5",200,200),img("dgn6",200,200)], likes: 278, date: "04-13", source: "古镇漫步" }
+        ],
+        goods: [
+          { name: "艾草香囊", price: "¥38", img: img("dgg3",300,300) },
+          { name: "草本香薰", price: "¥68", img: img("dgg4",300,300) }
+        ],
+        hotTags: [["艾草香囊",89],["驱蚊安神",56],["手工缝制",78],["草本清香",45],["江南夏天",67],["治愈",34]]
+      }
+    ]
+  },
+  {
+    idx: 8, heroMain: "外滩", heroSub: "露天电影", heroEn: "ROOFTOP", heroColor: "#BE185D", heroBg: "#FCE7F3", heroTag: "今晚",
+    desc: "外滩天台露天电影院，在夏夜晚风中看一场经典老电影。背后是陆家嘴的璀璨天际线，眼前是银幕上的光影流转。",
+    curator: "电影爱好者", curatorAvatar: ava(9), curatorSub: "金盾认证 · 已策展 1 个街区",
+    stats: { shops: 1, events: 1, people: "456" },
+    places: [
+      { name: "天台银幕", type: "露天影院", loc: "外滩某楼顶", score: "4.9", reviews: "1234", img: img("rooftop1",800,600), thumb: img("rooftop1",200,200), tags: ["露天","经典电影","夜景"], quote: "在天台看《花样年华》，背后的东方明珠刚好亮起，那一刻太浪漫了。", qAvatar: ava(9),
+        notes: [
+          { user: "电影迷", avatar: ava(66), text: "在外滩天台看《天堂电影院》，风有点大但氛围感满分，值得来。", imgs: [img("rtn1",200,200),img("rtn2",200,200)], likes: 892, date: "04-09", source: "露天电影" },
+          { user: "浪漫主义者", avatar: ava(67), text: "银幕背后是陆家嘴的天际线，电影和现实交织在一起，太梦幻了。", imgs: [img("rtn3",200,200)], likes: 734, date: "04-11", source: "外滩夜景" }
+        ],
+        goods: [
+          { name: "电影票", price: "¥128", img: img("rtg1",300,300) },
+          { name: "怀旧爆米花", price: "¥38", img: img("rtg2",300,300) }
+        ],
+        hotTags: [["花样年华",178],["东方明珠",156],["陆家嘴天际线",89],["经典电影",145],["夏夜晚风",67],["浪漫",234]]
+      },
+      { name: "夜风啤酒站", type: "酒水", loc: "天台侧区", score: "4.7", reviews: "567", img: img("rooftop2",800,600), thumb: img("rooftop2",200,200), tags: ["精酿","小食","氛围"], quote: "电影配精酿，夏夜的正确打开方式。爆米花是焦糖味的。", qAvatar: ava(9),
+        notes: [
+          { user: "夜饮客", avatar: ava(68), text: "焦糖爆米花配精酿啤酒，这是什么神仙组合，看电影必备。", imgs: [img("rtn4",200,200)], likes: 456, date: "04-10", source: "夏夜小食" },
+          { user: "情侣约会", avatar: ava(69), text: "和男朋友来看电影，他喝啤酒我喝气泡水，天台的风很温柔。", imgs: [img("rtn5",200,200),img("rtn6",200,200)], likes: 389, date: "04-12", source: "约会日记" }
+        ],
+        goods: [
+          { name: "精酿啤酒", price: "¥58", img: img("rtg3",300,300) },
+          { name: "焦糖爆米花", price: "¥28", img: img("rtg4",300,300) }
+        ],
+        hotTags: [["焦糖爆米花",89],["精酿",56],["电影伴侣",78],["夏夜",45],["情侣约会",67],["温柔晚风",34]]
+      }
+    ]
+  }
+];
+
+// ===================== RENDER HELPERS =====================
+function renderCard(c) {
+  let tagHtml = c.tag ? `<span class="tag">${c.tag}</span>` : "";
+  let deco = c.bg === "#F0EFEA" ? `<div class="deco-circle"></div><div class="search-icon">&#x1F50D;</div>` : "";
+  let style = c.bg && c.bg !== "#F0EFEA" ? `style="background:${c.bg}"` : "";
+  let titleStyle = c.main.length > 3 ? `style="font-size:36px"` : "";
+  let subStyle = c.sub.length > 3 ? `style="font-size:28px"` : "";
+  let enStyle = c.en.length > 8 ? `style="font-size:32px;color:${c.enColor}"` : `style="color:${c.enColor}"`;
+  return `<div class="theme-card" onclick="openDetail(${c.idx})">
+    <div class="cover" ${style}>
+      ${deco}
+      <div class="title-group">
+        <div class="main-title" ${titleStyle}>${c.main}</div>
+        <div class="sub-title" ${subStyle}>${c.sub}</div>
+        <div class="en-title" ${enStyle}>${c.en}${tagHtml}</div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="card-title">${c.title}</div>
+      <div class="card-meta">
+        <span class="meta-item">🏪 ${c.shops}家店</span>
+        <span class="meta-dot"></span>
+        ${c.tags.map(t=>`<span class="meta-tag">${t}</span>`).join("")}
+        <span class="meta-dot"></span>
+        <span class="meta-item">👥 ${c.people}人正在逛</span>
+      </div>
+      <div class="author"><img class="avatar" src="${c.avatar}" alt=""><span class="name">${c.author}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderShopCard(p, dIdx) {
+  return `<div class="shop-card" onclick="openPlace(${dIdx},${districts[dIdx].places.indexOf(p)})">
+    <div class="shop-main">
+      <div class="shop-img-wrap"><div class="shop-img-deco"></div><img class="shop-img" src="${p.thumb}" alt=""></div>
+      <div class="shop-info">
+        <div class="shop-header"><div class="shop-name">${p.name}</div><div class="star-btn" onclick="event.stopPropagation();toggleStar(this)"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div></div>
+        <div class="shop-meta">${p.type} · 上海 ${p.loc}</div>
+        <div class="quote"><img class="quote-avatar" src="${p.qAvatar}" alt=""><div class="quote-text">"${p.quote}"</div></div>
+        <div class="tags">${p.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+      </div>
+    </div>
+    <div class="shop-note-recs">
+      <div class="rec-label">大家的笔记</div>
+      ${p.notes.slice(0,3).map(n=>`<div class="rec-item"><img class="rec-img" src="${n.imgs[0]}" alt=""><div class="rec-text">"${n.text}"</div><div class="rec-likes">❤️ ${n.likes}</div></div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderDetail(d) {
+  let tagHtml = d.heroTag ? `<span class="tag">${d.heroTag}</span>` : "";
+  let deco = d.heroBg === "#F0EFEA" ? `<div class="deco-circle"></div><div class="search-icon">&#x1F50D;</div>` : "";
+  let heroStyle = d.heroBg && d.heroBg !== "#F0EFEA" ? `style="background:${d.heroBg}"` : "";
+  return `<div class="page-header">
+    <div class="back-btn" onclick="switchView('home')"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+    <div class="page-title">街区详情</div>
+  </div>
+  <div class="detail-hero" ${heroStyle}>
+    ${deco}
+    <div class="title-group">
+      <div class="main-title" style="font-size:${d.heroMain.length>3?'36px':'42px'}">${d.heroMain}</div>
+      <div class="sub-title" style="font-size:${d.heroSub.length>3?'28px':'36px'}">${d.heroSub}</div>
+      <div class="en-title" style="font-size:${d.heroEn.length>8?'32px':'48px'};color:${d.heroColor}">${d.heroEn}${tagHtml}</div>
+    </div>
+  </div>
+  <div class="detail-intro">
+    <div class="desc">${d.desc}</div>
+    <div class="curator-bar">
+      <div class="curator-left"><img class="avatar" src="${d.curatorAvatar}" alt=""><div class="info"><div class="name">${d.curator}<span>🛡️</span></div><div class="sub">${d.curatorSub}</div></div></div>
+      <button class="follow-btn" id="followBtn${d.idx}" onclick="toggleFollow(${d.idx})">关注</button>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><div class="num">${d.stats.shops}</div><div class="label">${d.idx===2?'目的地':'店铺'}</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="num">${d.stats.events}</div><div class="label">限时体验</div></div>
+    <div class="divider"></div>
+    <div class="stat"><div class="num">${d.stats.people}</div><div class="label">人正在逛</div></div>
+  </div>
+  <div class="section-title">${d.idx===2?'周末目的地':'街区店铺'}</div>
+  ${d.places.map(p=>renderShopCard(p,d.idx)).join("")}`;
+}
+
+// ===================== INIT =====================
+function init() {
+  // home tabs
+  document.getElementById("tabRec").innerHTML = homeCards.rec.map(renderCard).join("");
+  document.getElementById("tabHot").innerHTML = homeCards.hot.map(renderCard).join("");
+  document.getElementById("tabFlash").innerHTML = homeCards.flash.map(renderCard).join("");
+  document.getElementById("tabFollow").innerHTML = homeCards.follow.map(renderCard).join("");
+
+  // detail pages
+  districts.forEach(d => {
+    document.getElementById("detailView" + d.idx).innerHTML = renderDetail(d);
+  });
+
+  // home category switch
+  document.querySelectorAll('.category-bar .cat').forEach(cat => {
+    cat.addEventListener('click', function() {
+      document.querySelectorAll('.category-bar .cat').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('tab' + this.dataset.tab[0].toUpperCase() + this.dataset.tab.slice(1)).classList.add('active');
+    });
+  });
+}
+
+// ===================== NAVIGATION =====================
+function switchView(viewName, param) {
+  // hide all views
+  document.querySelectorAll('.view').forEach(v => {
+    v.classList.remove('active');
+    v.style.display = '';
+  });
+  document.getElementById('buyBar').style.display = 'none';
+  document.getElementById('bottomTab').style.display = 'flex';
+
+  if (viewName === 'home') {
+    document.getElementById('homeView').classList.add('active');
+  } else if (viewName === 'detail') {
+    document.getElementById('detailView' + param).classList.add('active');
+  } else if (viewName === 'place') {
+    renderPlaceView(param.d, param.p);
+    document.getElementById('placeView').classList.add('active');
+  } else if (viewName === 'product') {
+    renderProductView();
+    document.getElementById('productView').classList.add('active');
+    document.getElementById('buyBar').style.display = 'flex';
+    document.getElementById('bottomTab').style.display = 'none';
+  }
+  window.scrollTo(0, 0);
+}
+
+let currentDetail = 0;
+function openDetail(idx) {
+  currentDetail = idx;
+  switchView('detail', idx);
+}
+
+function openPlace(dIdx, pIdx) {
+  switchView('place', {d: dIdx, p: pIdx});
+}
+
+function backToDetail() {
+  switchView('detail', currentDetail);
+}
+
+function renderPlaceView(dIdx, pIdx) {
+  const p = districts[dIdx].places[pIdx];
+  document.getElementById('placeView').innerHTML = `
+  <div class="place-header">
+    <div class="back-btn" onclick="backToDetail()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+    <div class="header-actions">
+      <div class="action-btn"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+      <div class="action-btn"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+    </div>
+  </div>
+  <div class="place-hero">
+    <img src="${p.img}" alt="${p.name}">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="place-name">${p.name}</div>
+      <div class="place-rating"><span class="stars">★★★★★</span><span class="score">${p.score}</span><span class="reviews">${p.reviews} 人评价 ></span></div>
+      <div class="place-meta">${p.type} · ${p.loc}</div>
+      <div class="place-tags">${p.tags.map(t=>`<span class="p-tag">${t}</span>`).join('')}</div>
+    </div>
+    <div class="collect-btn"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>收藏 7000</span></div>
+  </div>
+  <div class="place-address-bar">
+    <div class="address">${p.loc} ></div>${p.type === '民宿' || p.type === '古村落' ? '' : '<div class="address-actions"><div class="a-btn"><svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><span>导航</span></div><div class="a-btn"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>电话</span></div></div>'}
+  </div>
+  <div class="place-tabs">
+    <div class="p-tab active" onclick="switchPlaceTab('hot')">热度</div>
+    <div class="p-tab" onclick="switchPlaceTab('notes')">笔记</div>
+    <div class="p-tab" onclick="switchPlaceTab('goods')">商品</div>
+  </div>
+  <div class="place-content active" id="pv-hot">
+    <div class="hot-section">
+      <div class="hot-title"><h3>讨论热度</h3><div class="more">全部 ></div></div>
+      <div class="hot-tags">${p.hotTags.map(h=>`<span class="h-tag">${h[0]}<span class="count">${h[1]}</span></span>`).join('')}</div>
+    </div>
+  </div>
+  <div class="place-content" id="pv-notes">
+    <div class="notes-list">${p.notes.map(n=>`
+      <div class="note-item">
+        <div class="note-header"><div class="note-user"><img src="${n.avatar}" alt=""><span class="username">${n.user}</span></div><div class="note-likes">❤️ ${n.likes}</div></div>
+        <div class="note-text">${n.text}<span class="more">更多 ></span></div>
+        <div class="note-imgs">${n.imgs.map((im,i)=>i===n.imgs.length-1&&n.imgs.length>1?`<div class="img-count"><img src="${im}" alt=""><span class="count-badge">共${n.imgs.length}张</span></div>`:`<img src="${im}" alt="">`).join('')}</div>
+        <div class="note-footer"><span>${n.date}</span><span>${p.loc}</span></div>
+        <div class="note-source">📒 来自笔记：${n.source} ></div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="place-content" id="pv-goods">
+    <div class="goods-list-place">${p.goods.map(g=>`<div class="goods-card" onclick="openProduct()"><img class="g-img" src="${g.img}" alt=""><div class="g-name">${g.name}</div><div class="g-price">${g.price}</div></div>`).join('')}</div>
+  </div>`;
+}
+
+function switchPlaceTab(tab) {
+  document.querySelectorAll('.place-tabs .p-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.place-content').forEach(c => c.classList.remove('active'));
+  const map = {hot:0, notes:1, goods:2};
+  document.querySelectorAll('.place-tabs .p-tab')[map[tab]].classList.add('active');
+  document.getElementById('pv-' + tab).classList.add('active');
+}
+
+function renderProductView() {
+  document.getElementById('productView').innerHTML = `
+  <div class="page-header">
+    <div class="back-btn" onclick="backToPlace()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+    <div class="page-title">商品详情</div>
+  </div>
+  <div class="product-images" style="display:flex;align-items:center;justify-content:center;background:#f8f8f8;">
+    <div style="font-size:48px;font-weight:900;color:#999;letter-spacing:4px;">商品详情页</div>
+  </div>
+  <div class="product-info">
+    <div class="product-name">示例商品名称</div>
+    <div class="product-price">¥99<span class="original">¥199</span></div>
+    <div class="shop-info-bar"><div class="shop-icon" style="width:36px;height:36px;border-radius:8px;background:#e8e8e8;flex-shrink:0;margin-right:10px;"></div><div class="shop-name-text">示例店铺</div><div class="enter-shop">进店 ></div></div>
+    <div class="product-desc">这里是商品的通用详情模板，包含材质、尺寸、使用方法等说明。<br><br>购买后你可以回到街区写下真实体验，帮助更多人发现好物。</div>
+  </div>`;
+}
+
+function openProduct() {
+  switchView('product');
+}
+
+function backToPlace() {
+  document.getElementById('productView').classList.remove('active');
+  document.getElementById('placeView').classList.add('active');
+  document.getElementById('buyBar').style.display = 'none';
+  document.getElementById('bottomTab').style.display = 'flex';
+}
+
+function toggleFollow(idx) {
+  const btn = document.getElementById('followBtn' + idx);
+  btn.classList.toggle('following');
+  btn.textContent = btn.classList.contains('following') ? '已关注' : '关注';
+}
+
+function toggleStar(el) { el.classList.toggle('active'); }
+function toggleLike(el) { el.classList.toggle('active'); }
+
+init();
+</script>
+</body>
+</html>
